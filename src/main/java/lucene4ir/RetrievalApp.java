@@ -1,5 +1,10 @@
 package lucene4ir;
 
+import lucene4ir.similarity.FieldValuesLabelAwareIterator;
+import lucene4ir.similarity.FieldValuesSentenceIterator;
+import lucene4ir.similarity.LearnToScoreSimilarity;
+import lucene4ir.similarity.ParagraphVectorsSimilarity;
+import lucene4ir.similarity.WordEmbeddingsSimilarity;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -19,6 +24,15 @@ import lucene4ir.similarity.OKAPIBM25Similarity;
 import lucene4ir.similarity.BM25LSimilarity;
 import lucene4ir.similarity.BM25Similarity;
 import lucene4ir.utils.TokenAnalyzerMaker;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.CBOW;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
+import org.deeplearning4j.models.embeddings.learning.impl.sequence.DBOW;
+import org.deeplearning4j.models.embeddings.learning.impl.sequence.DM;
+import org.deeplearning4j.models.paragraphvectors.ParagraphVectors;
+import org.deeplearning4j.models.word2vec.VocabWord;
+import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.LowCasePreProcessor;
+import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
 
 import javax.xml.bind.JAXB;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -43,7 +57,7 @@ public class RetrievalApp {
 
     protected enum SimModel {
         DEF, BM25, BM25L, LMD, LMJ, PL2, TFIDF,
-	OKAPIBM25, SMARTBNNBNN, DFR
+	OKAPIBM25, SMARTBNNBNN, DFR, PV, WV, CLASSIC, LTS
     }
 
     protected SimModel sim;
@@ -64,6 +78,9 @@ public class RetrievalApp {
     public void selectSimilarityFunction(SimModel sim){
         colModel = null;
         switch(sim){
+            case CLASSIC:
+                simfn = new ClassicSimilarity();
+                break;
             case OKAPIBM25:
                 System.out.println("OKAPI BM25 Similarity Function");
                 simfn = new OKAPIBM25Similarity(1.2f, 0.75f);
@@ -106,6 +123,65 @@ public class RetrievalApp {
                 Normalization nh1 = new NormalizationH1();
                 simfn = new DFRSimilarity(bmd, aen, nh1);
                 break;
+            case PV:
+                String field = Lucene4IRConstants.FIELD_ALL;
+                FieldValuesLabelAwareIterator iterator = new FieldValuesLabelAwareIterator(reader, field);
+                DefaultTokenizerFactory tokenizerFactory = new DefaultTokenizerFactory();
+                tokenizerFactory.setTokenPreProcessor(new LowCasePreProcessor());
+
+//                Word2Vec w2v = new Word2Vec.Builder()
+//                    .iterate(iterator)
+//                    .layerSize(200)
+//                    .epochs(5)
+//                    .useUnknown(true)
+//                    .windowSize(3)
+//                    .seed(12345)
+//                    .tokenizerFactory(tokenizerFactory)
+//                    .build();
+//                w2v.fit();
+
+                ParagraphVectors paragraphVectors = new ParagraphVectors.Builder()
+                    .iterate(iterator)
+                    .layerSize(200)
+                    .learningRate(0.1)
+                    .useAdaGrad(true)
+                    .trainSequencesRepresentation(true)
+                    .epochs(5)
+                    .seed(12345)
+                    .useUnknown(true)
+                    .tokenizerFactory(tokenizerFactory)
+//                    .useExistingWordVectors(w2v)
+                    .trainElementsRepresentation(true)
+                    .build();
+                paragraphVectors.fit();
+//                Similarity[] sims = new Similarity[]{new ParagraphVectorsSimilarity(paragraphVectors, field), new WordEmbeddingsSimilarity(w2v, field)};
+//                simfn = new MultiSimilarity(sims);
+                simfn = new ParagraphVectorsSimilarity(paragraphVectors, field);
+                break;
+
+            case WV:
+                String f = Lucene4IRConstants.FIELD_ALL;
+                FieldValuesSentenceIterator it = new FieldValuesSentenceIterator(reader, f);
+                DefaultTokenizerFactory t = new DefaultTokenizerFactory();
+                t.setTokenPreProcessor(new LowCasePreProcessor());
+
+                Word2Vec vec = new Word2Vec.Builder()
+                    .iterate(it)
+                    .layerSize(200)
+                    .epochs(5)
+                    .useUnknown(true)
+                    .windowSize(3)
+                    .seed(12345)
+                    .tokenizerFactory(t)
+                    .build();
+                vec.fit();
+
+                simfn = new MultiSimilarity(new Similarity[]{new LMDirichletSimilarity(), new WordEmbeddingsSimilarity(vec, f)});
+                break;
+            case LTS:
+
+              simfn = new LearnToScoreSimilarity();
+              break;
 
             default:
                 System.out.println("Default Similarity Function");

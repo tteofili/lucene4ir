@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <tokenFilters>
-<tokenizer>whitespace</tokenizer>
+<tokenizer>standard</tokenizer>
 <tokenFilter>
     <name>lowercase</name>
 </tokenFilter>
 <tokenFilter>
-    <name>porterstem</name>
+    <name>w2vsynonym</name>
+    <param>
+        <key>model</key>
+        <value>/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin/paragram.txt_counterfitted.bin</value>
+    </param>
 </tokenFilter>
+
 </tokenFilters>
