@@ -28,6 +28,7 @@ import org.deeplearning4j.models.embeddings.learning.impl.elements.CBOW;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.embeddings.learning.impl.sequence.DBOW;
 import org.deeplearning4j.models.embeddings.learning.impl.sequence.DM;
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors;
 import org.deeplearning4j.models.word2vec.VocabWord;
 import org.deeplearning4j.models.word2vec.Word2Vec;
@@ -161,22 +162,30 @@ public class RetrievalApp {
 
             case WV:
                 String f = Lucene4IRConstants.FIELD_ALL;
-                FieldValuesSentenceIterator it = new FieldValuesSentenceIterator(reader, f);
-                DefaultTokenizerFactory t = new DefaultTokenizerFactory();
-                t.setTokenPreProcessor(new LowCasePreProcessor());
 
-                Word2Vec vec = new Word2Vec.Builder()
-                    .iterate(it)
-                    .layerSize(200)
-                    .epochs(5)
-                    .useUnknown(true)
-                    .windowSize(3)
-                    .seed(12345)
-                    .tokenizerFactory(t)
-                    .build();
-                vec.fit();
+                Word2Vec vec;
+                if (System.getProperty("model") != null) {
+                    String model = System.getProperty("model");
+                    vec = WordVectorSerializer.readWord2VecModel(model);
+                }
+                else {
+                    FieldValuesSentenceIterator it = new FieldValuesSentenceIterator(reader, f);
+                    DefaultTokenizerFactory t = new DefaultTokenizerFactory();
+                    t.setTokenPreProcessor(new LowCasePreProcessor());
+                    vec = new Word2Vec.Builder()
+                        .iterate(it)
+                        .layerSize(200)
+                        .epochs(5)
+                        .useUnknown(true)
+                        .windowSize(3)
+                        .seed(12345)
+                        .tokenizerFactory(t)
+                        .build();
+                    vec.fit();
+                }
 
-                simfn = new MultiSimilarity(new Similarity[]{new LMDirichletSimilarity(), new WordEmbeddingsSimilarity(vec, f)});
+//                simfn = new MultiSimilarity(new Similarity[]{new LMDirichletSimilarity(), new WordEmbeddingsSimilarity(vec, f)});
+                simfn = new WordEmbeddingsSimilarity(vec, f);
                 break;
             case LTS:
 

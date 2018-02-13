@@ -1,8 +1,11 @@
 package lucene4ir.similarity;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
+import lucene4ir.Lucene4IRConstants;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -43,7 +46,7 @@ public class WordEmbeddingsSimilarity extends Similarity {
   public WordEmbeddingsSimilarity(Word2Vec word2Vec, String fieldName) {
     this.word2Vec = word2Vec;
     this.fieldName = fieldName;
-    this.smoothing = Smoothing.TF;
+    this.smoothing = Smoothing.TF_IDF;
   }
 
   @Override
@@ -88,9 +91,20 @@ public class WordEmbeddingsSimilarity extends Similarity {
     public float score(int doc, float freq) {
       try {
         INDArray denseQueryVector = getQueryVector();
-        INDArray denseDocumentVector = VectorizeUtils.toDenseAverageVector(
-            reader.getTermVector(doc, fieldName), reader.numDocs(), word2Vec, smoothing);
-        return (float) Transforms.cosineSim(denseQueryVector, denseDocumentVector);
+        INDArray denseDocumentVector;
+        Document document = reader.document(context.docBase + doc);
+        BytesRef bytesRef;
+        if (document != null && (bytesRef = document.getBinaryValue(Lucene4IRConstants.FIELD_VECTOR)) != null) {
+          denseDocumentVector = Nd4j.fromByteArray(bytesRef.bytes);
+        } else {
+          denseDocumentVector = VectorizeUtils.toDenseAverageVector(
+              reader.getTermVector(doc, fieldName), reader.numDocs(), word2Vec, smoothing);
+        }
+//        return (float) Transforms.cosineSim(denseQueryVector, denseDocumentVector);
+        return (float) Transforms.euclideanDistance(denseQueryVector, denseDocumentVector);
+//        return (float) Transforms.hammingDistance(denseQueryVector, denseDocumentVector);
+//        return (float) Transforms.jaccardDistance(denseQueryVector, denseDocumentVector);
+//        return (float) Transforms.manhattanDistance(denseQueryVector, denseDocumentVector);
       } catch (IOException e) {
         return 0f;
       }

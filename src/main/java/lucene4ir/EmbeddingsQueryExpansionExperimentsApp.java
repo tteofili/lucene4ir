@@ -11,7 +11,7 @@ import org.apache.commons.io.IOUtils;
 /**
  *
  */
-public class ExperimentsApp {
+public class EmbeddingsQueryExpansionExperimentsApp {
 
   private static String[] measures = new String[] {"ndcg", "map", "gm_map", "Rprec", "bpref", "recip_rank"};
   private static String[] directories = new String[] {
@@ -61,7 +61,12 @@ public class ExperimentsApp {
 
           metrics.append(output).append(',');
         }
-        builder.append(metrics.toString()).append('\n');
+
+        String line = metrics.toString();
+
+        System.out.println(line);
+
+        builder.append(line).append('\n');
       }
     }
 

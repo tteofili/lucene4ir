@@ -18,5 +18,6 @@ public class Lucene4IRConstants {
     public static final String FIELD_PUBDATE = "pubdate";
     public static final String FIELD_SOURCE = "source";
     public static final String FIELD_ALL = "all";
+    public static final String FIELD_VECTOR = "vector";
 
 }

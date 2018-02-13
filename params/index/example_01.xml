@@ -11,5 +11,15 @@
         <value>/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin/paragram.txt_counterfitted.bin</value>
     </param>
 </tokenFilter>
-
+<!--<tokenFilter>-->
+    <!--<name>synonym</name>-->
+    <!--<param>-->
+        <!--<key>format</key>-->
+        <!--<value>wordnet</value>-->
+    <!--</param>-->
+    <!--<param>-->
+        <!--<key>synonyms</key>-->
+        <!--<value>wn_s.pl</value>-->
+    <!--</param>-->
+<!--</tokenFilter>-->
 </tokenFilters>

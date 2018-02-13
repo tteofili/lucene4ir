@@ -13,6 +13,8 @@ import lucene4ir.indexer.*;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.index.*;
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
+import org.deeplearning4j.models.word2vec.Word2Vec;
 
 /**
  *
@@ -57,7 +59,19 @@ public class IndexerApp {
         switch(dm){
             case CACM:
                 System.out.println("CACM Document Parser");
-                di = new CACMDocumentIndexer(p.indexName, p.tokenFilterFile, p.recordPositions);
+                if (System.getProperty("model") != null) {
+                    String model = System.getProperty("model");
+                    Word2Vec vec = WordVectorSerializer.readWord2VecModel(model);
+                  try {
+                    di = new CACMDocumentIndexerWithDocVectors(p.indexName, p.tokenFilterFile,
+                        p.recordPositions, vec);
+                  } catch (Exception e) {
+                    throw new RuntimeException(e);
+                  }
+                } else {
+                    di = new CACMDocumentIndexer(p.indexName, p.tokenFilterFile,
+                        p.recordPositions);
+                }
                 break;
 
             case CLUEWEB:

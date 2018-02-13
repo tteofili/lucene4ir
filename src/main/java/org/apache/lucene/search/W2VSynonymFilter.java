@@ -68,9 +68,9 @@ public final class W2VSynonymFilter extends TokenFilter {
       positionIncrementAttribute.setPositionIncrement(positions);
       String word = termAtt.toString().trim();
       if (word.length() > 2) {
-        String[] tag = posTagger.tag(new String[] {word});
-
-        if (tag.length > 0 && ("NN".equals(tag[0]) || "JJ".equals(tag[0]) || "NNS".equals(tag[0]))) {
+//        String[] tag = posTagger.tag(new String[] {word});
+//
+//        if (tag.length > 0 && ("NN".equals(tag[0]) || "JJ".equals(tag[0]) || "NNS".equals(tag[0]))) {
           Collection<String> list = word2Vec.wordsNearest(word, 2);
           for (String syn : list) {
             if (!syn.equals(word)) {
@@ -81,7 +81,7 @@ public final class W2VSynonymFilter extends TokenFilter {
               outputs.add(new PendingOutput(state, cr, positions));
             }
           }
-        }
+//        }
       }
     }
     return !outputs.isEmpty() || input.incrementToken();

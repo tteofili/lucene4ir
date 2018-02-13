@@ -113,8 +113,12 @@
                         <configuration>
                             <programs>
                                 <program>
-                                    <mainClass>lucene4ir.ExperimentsApp</mainClass>
-                                    <name>exp</name>
+                                    <mainClass>lucene4ir.EmbeddingsQueryExpansionExperimentsApp</mainClass>
+                                    <name>qe</name>
+                                </program>
+                                <program>
+                                    <mainClass>lucene4ir.EmbeddingsRetrievalExperimentsApp</mainClass>
+                                    <name>ret</name>
                                 </program>
                             </programs>
                         </configuration>
