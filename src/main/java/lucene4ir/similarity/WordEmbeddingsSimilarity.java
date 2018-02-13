@@ -100,8 +100,8 @@ public class WordEmbeddingsSimilarity extends Similarity {
           denseDocumentVector = VectorizeUtils.toDenseAverageVector(
               reader.getTermVector(doc, fieldName), reader.numDocs(), word2Vec, smoothing);
         }
-//        return (float) Transforms.cosineSim(denseQueryVector, denseDocumentVector);
-        return (float) Transforms.euclideanDistance(denseQueryVector, denseDocumentVector);
+        return (float) Transforms.cosineSim(denseQueryVector, denseDocumentVector);
+//        return (float) Transforms.euclideanDistance(denseQueryVector, denseDocumentVector);
 //        return (float) Transforms.hammingDistance(denseQueryVector, denseDocumentVector);
 //        return (float) Transforms.jaccardDistance(denseQueryVector, denseDocumentVector);
 //        return (float) Transforms.manhattanDistance(denseQueryVector, denseDocumentVector);
