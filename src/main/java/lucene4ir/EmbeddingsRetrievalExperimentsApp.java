@@ -64,10 +64,9 @@ public class EmbeddingsRetrievalExperimentsApp {
 
         String line = metrics.toString();
 
+        System.out.println(line);
 
         builder.append(line).append('\n');
-
-        System.out.println(builder);
       }
     }
 

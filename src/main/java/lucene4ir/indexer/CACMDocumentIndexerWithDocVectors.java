@@ -1,6 +1,8 @@
 package lucene4ir.indexer;
 
 import java.io.BufferedReader;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import lucene4ir.Lucene4IRConstants;
 import org.apache.lucene.analysis.Analyzer;
@@ -69,21 +71,30 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
             TokenStream tokenStream = analyzer.tokenStream(null, value);
             tokenStream.addAttribute(CharTermAttribute.class);
             tokenStream.reset();
+            Collection<String> words = new LinkedList<>();
             while (tokenStream.incrementToken()) {
                 CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
                 String token = attribute.toString();
-                INDArray wordVector = word2Vec.getLookupTable().vector(token);
-                if (wordVector != null) {
-                    vector.addi(wordVector);
-                    i++;
-                }
-                INDArray unkVector = word2Vec.getLookupTable().vector(word2Vec.getUNK());
-                if (unkVector != null) {
-                    vector.addi(unkVector);
-                    i++;
-                }
+                words.add(token);
             }
-            vector.divi(i);
+            try {
+                vector = word2Vec.getWordVectorsMean(words);
+            } catch (Exception e) {
+                System.err.println("couldn't get word vectors mean -> " + e.getLocalizedMessage());
+                for (String token : words) {
+                    INDArray wordVector = word2Vec.getLookupTable().vector(token);
+                    if (wordVector != null) {
+                        vector.addi(wordVector);
+                        i++;
+                    }
+                    INDArray unkVector = word2Vec.getLookupTable().vector(word2Vec.getUNK());
+                    if (unkVector != null) {
+                        vector.addi(unkVector);
+                        i++;
+                    }
+                }
+                vector.divi(i);
+            }
 
             return Nd4j.toByteArray(vector);
         };

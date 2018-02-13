@@ -3,6 +3,8 @@ package lucene4ir.similarity;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import lucene4ir.Lucene4IRConstants;
 import org.apache.lucene.document.Document;
@@ -111,58 +113,66 @@ public class WordEmbeddingsSimilarity extends Similarity {
     }
 
     private INDArray getQueryVector() throws IOException {
-      INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
-      String[] queryTerms = new String[weight.termStats.length];
-      int i = 0;
+      List<String> queryTerms = new LinkedList<>();
+//      int i = 0;
       for (TermStatistics termStats : weight.termStats) {
-        queryTerms[i] = termStats.term().utf8ToString();
-        i++;
+        queryTerms.add(termStats.term().utf8ToString());
+//        i++;
+      }
+      try {
+        return word2Vec.getWordVectorsMean(queryTerms);
+      } catch (Exception e) {
+        System.err.println(e.getLocalizedMessage());
+        return Nd4j.zeros(word2Vec.getLayerSize());
       }
 
-      if (fieldTerms == null) {
-        fieldTerms = MultiFields.getTerms(reader, fieldName);
-      }
+//      INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
+//
+//      if (fieldTerms == null) {
+//        fieldTerms = MultiFields.getTerms(reader, fieldName);
+//      }
+//
+//      for (String queryTerm : queryTerms) {
+//        TermsEnum iterator = fieldTerms.iterator();
+//        BytesRef term;
+//        while ((term = iterator.next()) != null) {
+//          TermsEnum.SeekStatus seekStatus = iterator.seekCeil(term);
+//          if (seekStatus.equals(TermsEnum.SeekStatus.END)) {
+//            iterator = fieldTerms.iterator();
+//          }
+//          if (seekStatus.equals(TermsEnum.SeekStatus.FOUND)) {
+//            String string = term.utf8ToString();
+//            if (string.equals(queryTerm)) {
+//              INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
+//              if (vector != null) {
+//                double tf = iterator.totalTermFreq();
+//                double docFreq = iterator.docFreq();
+//                double smooth;
+//                switch (smoothing) {
+//                  case MEAN:
+//                    smooth = queryTerms.length;
+//                    break;
+//                  case TF:
+//                    smooth = tf;
+//                    break;
+//                  case IDF:
+//                    smooth = docFreq;
+//                    break;
+//                  case TF_IDF:
+//                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
+//                    break;
+//                  default:
+//                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
+//                }
+//                denseQueryVector.addi(vector.div(smooth));
+//              }
+//              break;
+//            }
+//          }
+//        }
+//      }
+//      return denseQueryVector;
 
-      for (String queryTerm : queryTerms) {
-        TermsEnum iterator = fieldTerms.iterator();
-        BytesRef term;
-        while ((term = iterator.next()) != null) {
-          TermsEnum.SeekStatus seekStatus = iterator.seekCeil(term);
-          if (seekStatus.equals(TermsEnum.SeekStatus.END)) {
-            iterator = fieldTerms.iterator();
-          }
-          if (seekStatus.equals(TermsEnum.SeekStatus.FOUND)) {
-            String string = term.utf8ToString();
-            if (string.equals(queryTerm)) {
-              INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
-              if (vector != null) {
-                double tf = iterator.totalTermFreq();
-                double docFreq = iterator.docFreq();
-                double smooth;
-                switch (smoothing) {
-                  case MEAN:
-                    smooth = queryTerms.length;
-                    break;
-                  case TF:
-                    smooth = tf;
-                    break;
-                  case IDF:
-                    smooth = docFreq;
-                    break;
-                  case TF_IDF:
-                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
-                    break;
-                  default:
-                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
-                }
-                denseQueryVector.addi(vector.div(smooth));
-              }
-              break;
-            }
-          }
-        }
-      }
-      return denseQueryVector;
     }
 
     @Override

@@ -73,13 +73,13 @@ public class ParagraphVectorsSimilarity extends Similarity {
     public float score(int doc, float freq) {
       try {
         INDArray denseQueryVector = getQueryVector();
-        doc += context.docBase;
-        String label = "doc_" + doc;
+        int adoc = context.docBase + doc;
+        String label = "doc_" + adoc;
         INDArray documentParagraphVector = paragraphVectors.getLookupTable().vector(label);
         if (documentParagraphVector == null) {
           LabelledDocument document = new LabelledDocument();
           document.setLabels(Collections.singletonList(label));
-          document.setContent(reader.document(doc).getField(fieldName).stringValue());
+          document.setContent(reader.document(adoc).getField(fieldName).stringValue());
           documentParagraphVector = paragraphVectors.inferVector(document);
         }
         return (float) Transforms.cosineSim(denseQueryVector, documentParagraphVector);
@@ -94,13 +94,14 @@ public class ParagraphVectorsSimilarity extends Similarity {
         if (q.length() > 0) {
           q.append(' ');
         }
-        q.append(termStats.term().utf8ToString());
+        String str = termStats.term().utf8ToString();
+        q.append(str);
       }
       INDArray indArray;
       String text = q.toString();
       try {
         indArray = paragraphVectors.inferVector(text);
-      } catch (ND4JIllegalStateException e) {
+      } catch (ND4JIllegalStateException ne) {
         indArray = paragraphVectors.getLookupTable().vector(text);
       }
       return indArray;

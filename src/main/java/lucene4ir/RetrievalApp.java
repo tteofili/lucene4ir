@@ -123,23 +123,12 @@ public class RetrievalApp {
                 AfterEffect aen = new AfterEffect.NoAfterEffect();
                 Normalization nh1 = new NormalizationH1();
                 simfn = new DFRSimilarity(bmd, aen, nh1);
-                break;
+            break;
             case PV:
                 String field = Lucene4IRConstants.FIELD_ALL;
                 FieldValuesLabelAwareIterator iterator = new FieldValuesLabelAwareIterator(reader, field);
                 DefaultTokenizerFactory tokenizerFactory = new DefaultTokenizerFactory();
                 tokenizerFactory.setTokenPreProcessor(new LowCasePreProcessor());
-
-//                Word2Vec w2v = new Word2Vec.Builder()
-//                    .iterate(iterator)
-//                    .layerSize(200)
-//                    .epochs(5)
-//                    .useUnknown(true)
-//                    .windowSize(3)
-//                    .seed(12345)
-//                    .tokenizerFactory(tokenizerFactory)
-//                    .build();
-//                w2v.fit();
 
                 ParagraphVectors paragraphVectors = new ParagraphVectors.Builder()
                     .iterate(iterator)
@@ -151,7 +140,6 @@ public class RetrievalApp {
                     .seed(12345)
                     .useUnknown(true)
                     .tokenizerFactory(tokenizerFactory)
-//                    .useExistingWordVectors(w2v)
                     .trainElementsRepresentation(true)
                     .build();
                 paragraphVectors.fit();
@@ -174,10 +162,10 @@ public class RetrievalApp {
                     t.setTokenPreProcessor(new LowCasePreProcessor());
                     vec = new Word2Vec.Builder()
                         .iterate(it)
-                        .layerSize(200)
-                        .epochs(5)
+                        .layerSize(140)
+                        .epochs(3)
                         .useUnknown(true)
-                        .windowSize(3)
+                        .windowSize(4)
                         .seed(12345)
                         .tokenizerFactory(t)
                         .build();
