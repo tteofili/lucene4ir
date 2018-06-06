@@ -14,6 +14,7 @@ import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.buffer.FloatBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.learning.config.RmsProp;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 /**
@@ -28,21 +29,17 @@ public class LearnToScoreSimilarity extends SimilarityBase {
   }
 
   public LearnToScoreSimilarity() {
-    double learningRate = 0.2;
     WeightInit weightInit = WeightInit.XAVIER;
-    Updater updater = Updater.RMSPROP;
     int lstmLayerSize = 40;
     Activation activation = Activation.SOFTPLUS;
     int noOfHiddenLayers = 1;
     int tbpttLength = 20;
 
     NeuralNetConfiguration.ListBuilder builder = new NeuralNetConfiguration.Builder()
-        .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).iterations(1)
-        .learningRate(learningRate)
-        .regularization(true)
+        .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .seed(12345)
         .weightInit(weightInit)
-        .updater(updater)
+        .updater(new RmsProp())
         .list()
         .layer(0, new LSTM.Builder().nIn(8).nOut(lstmLayerSize)
             .activation(activation).build());
@@ -51,7 +48,7 @@ public class LearnToScoreSimilarity extends SimilarityBase {
       builder = builder.layer(i+1, new LSTM.Builder().nIn(lstmLayerSize).nOut(lstmLayerSize)
           .activation(activation).build());
     }
-    builder.layer(noOfHiddenLayers, new RnnOutputLayer.Builder(LossFunctions.LossFunction.SQUARED_LOSS).activation(activation)
+    builder.layer(noOfHiddenLayers, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MSE).activation(activation)
         .nIn(lstmLayerSize).nOut(1).build())
         .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
         .pretrain(true).backprop(true)

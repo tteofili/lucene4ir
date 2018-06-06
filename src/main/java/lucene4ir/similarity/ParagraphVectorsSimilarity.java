@@ -37,9 +37,9 @@ public class ParagraphVectorsSimilarity extends Similarity {
   }
 
   @Override
-  public SimWeight computeWeight(CollectionStatistics collectionStats,
+  public SimWeight computeWeight(float boost, CollectionStatistics collectionStats,
                                  TermStatistics... termStats) {
-    return new PVSimWeight(1l, collectionStats, termStats);
+    return new PVSimWeight(boost, collectionStats, termStats);
   }
 
   @Override
@@ -136,16 +136,6 @@ public class ParagraphVectorsSimilarity extends Similarity {
           ", collectionStats=" + collectionStats +
           ", termStats=" + Arrays.toString(termStats) +
           '}';
-    }
-
-    @Override
-    public float getValueForNormalization() {
-      return 1f;
-    }
-
-    @Override
-    public void normalize(float queryNorm, float boost) {
-
     }
   }
 }

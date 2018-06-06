@@ -114,7 +114,8 @@ public class RetrieverOkapiBM25 extends Retriever {
 
                     float score = 0.0f;
 
-                    long docLength = norms.get(doc);
+                    norms.advanceExact(doc);
+                    long docLength = norms.longValue();
 
                     // iterate over all the posting list associated to query terms
                     for (int qt = 0; qt < postingLists.length; qt++) {

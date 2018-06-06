@@ -157,4 +157,28 @@ public class VectorizeUtils {
     }
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
+
+  public static INDArray averageWordVectors(Collection<String> words, Word2Vec word2Vec) {
+    INDArray denseDocumentVector;
+    try {
+      denseDocumentVector = word2Vec.getWordVectorsMean(words);
+    } catch (Exception e) {
+      denseDocumentVector = Nd4j.zeros(word2Vec.getLayerSize());
+      int i = 0;
+      for (String token : words) {
+        INDArray wordVector = word2Vec.getLookupTable().vector(token);
+        if (wordVector != null) {
+          denseDocumentVector.addi(wordVector);
+          i++;
+        }
+        INDArray unkVector = word2Vec.getLookupTable().vector(word2Vec.getUNK());
+        if (unkVector != null) {
+          denseDocumentVector.addi(unkVector);
+          i++;
+        }
+      }
+      denseDocumentVector.divi(i);
+    }
+    return denseDocumentVector;
+  }
 }

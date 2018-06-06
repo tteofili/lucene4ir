@@ -56,7 +56,7 @@ public class OKAPIBM25Similarity extends Similarity {
     }
 
     @Override
-    public final SimWeight computeWeight(CollectionStatistics collectionStats,
+    public final SimWeight computeWeight(float boost, CollectionStatistics collectionStats,
 					 TermStatistics... termStats)
     {
 	long  N, n;
@@ -105,12 +105,12 @@ public class OKAPIBM25Similarity extends Similarity {
 	}
 
 	@Override
-	public float score(int doc, float tf)
-	{
+	public float score(int doc, float tf) throws IOException {
 	    float idf_, dl, avdl, K, w;
 	    idf_ = tw.idf_;
 	    avdl = tw.avdl;
-	    dl   = (float)norms.get(doc);
+		norms.advanceExact(doc);
+	    dl   = (float)norms.longValue();
 	    K    = k1 * (1.0f - b + b * (dl / avdl));
 	    w    = ((k1 + 1.0f) * tf) / (K + tf) * idf_;
 	    return w;
@@ -143,13 +143,11 @@ public class OKAPIBM25Similarity extends Similarity {
 	    this.avdl  = avdl;
 	}
 
-	@Override
 	public float getValueForNormalization()
 	{
 	    return 1.0f;
 	}
 
-	@Override
 	public void normalize(float queryNorm, float boost) {}
     }    
 

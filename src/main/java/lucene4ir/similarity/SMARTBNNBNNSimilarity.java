@@ -50,7 +50,7 @@ public class SMARTBNNBNNSimilarity extends Similarity {
     }
 
     @Override
-    public final SimWeight computeWeight(CollectionStatistics collectionStats,
+    public final SimWeight computeWeight(float boost, CollectionStatistics collectionStats,
 					 TermStatistics... termStats)
     {
 	float N, n, idf, adl;
@@ -93,12 +93,12 @@ public class SMARTBNNBNNSimilarity extends Similarity {
 	}
 
 	@Override
-	public float score(int doc, float tf)
-	{
+	public float score(int doc, float tf) throws IOException {
 	    float idf, dl, adl, K, w;
 	    idf = tw.idf;
 	    adl = tw.adl;
-	    dl = (float)norms.get(doc);
+		norms.advanceExact(doc);
+	    dl = (float)norms.longValue();
 	    K = 1.0f;
 	    w = 1.0f;
 	    return w;
@@ -130,13 +130,11 @@ public class SMARTBNNBNNSimilarity extends Similarity {
 	    this.adl   = adl;
 	}
 
-	@Override
 	public float getValueForNormalization()
 	{
 	    return 1.0f;
 	}
 
-	@Override
 	public void normalize(float queryNorm, float boost) {}
     }    
 

@@ -14,13 +14,6 @@ import org.apache.commons.io.IOUtils;
 public class EmbeddingsRetrievalExperimentsApp {
 
   private static String[] measures = new String[] {"ndcg", "map", "Rprec", "recip_rank"};
-  private static String[] directories = new String[] {
-      "/Users/teofili/Desktop/affect-dl/pre/",
-      "/Users/teofili/Desktop/affect-dl/post/glove_post_training_bin",
-      "/Users/teofili/Desktop/affect-dl/post/word2vec_post_training_bin",
-      "/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin",
-      "/Users/teofili/Desktop/affect-dl/ootb-models",
-  };
 
   public static void main(String[] args) throws Exception {
 
@@ -31,7 +24,7 @@ public class EmbeddingsRetrievalExperimentsApp {
       builder.append(measure).append(',');
     }
 
-    for (String directory : directories) {
+    for (String directory : args) {
       FileFilter filter = pathname -> !pathname.getName().startsWith(".");
       File modelsDirectory = new File(directory);
       File[] models = modelsDirectory.listFiles(filter);
@@ -64,9 +57,8 @@ public class EmbeddingsRetrievalExperimentsApp {
 
         String line = metrics.toString();
 
-        System.out.println(line);
-
         builder.append(line).append('\n');
+        System.out.println(builder);
       }
     }
 

@@ -1,7 +1,5 @@
 package org.apache.lucene.search;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -17,10 +15,6 @@ import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
-import opennlp.tools.postag.POSModel;
-import opennlp.tools.postag.POSTagger;
-import opennlp.tools.postag.POSTaggerME;
-
 /**
  * A word2vec based synonym filter
  */
@@ -31,25 +25,18 @@ public final class W2VSynonymFilter extends TokenFilter {
   private final PositionIncrementAttribute positionIncrementAttribute = addAttribute(PositionIncrementAttribute.class);
 
   private final Word2Vec word2Vec;
+  private final double minAccuracy;
   private final List<PendingOutput> outputs = new LinkedList<>();
   private int positions = 0;
-  private final POSTagger posTagger;
 
-  W2VSynonymFilter(TokenStream input, Word2Vec word2Vec) {
+  public W2VSynonymFilter(TokenStream input, Word2Vec word2Vec, double minAccuracy) {
     super(input);
     this.word2Vec = word2Vec;
-    POSModel model;
-    try {
-      model = new POSModel(new FileInputStream(new File("/Users/teofili/dev/DC-FlinkMeetup/src/main/resources/opennlp-models/en-pos-maxent.bin")));
-    } catch (IOException e) {
-      throw new RuntimeException();
-    }
-    this.posTagger = new POSTaggerME(model);
+    this.minAccuracy = minAccuracy;
   }
 
   @Override
   public boolean incrementToken() throws IOException {
-
     if (!outputs.isEmpty()) {
       PendingOutput output = outputs.remove(0);
 
@@ -62,26 +49,24 @@ public final class W2VSynonymFilter extends TokenFilter {
       return true;
     }
 
-    String type = typeAtt.type();
-    if (!SynonymFilter.TYPE_SYNONYM.equals(type)) {
+    if (!SynonymFilter.TYPE_SYNONYM.equals(typeAtt.type())) {
       positions++;
       positionIncrementAttribute.setPositionIncrement(positions);
-      String word = termAtt.toString().trim();
-      if (word.length() > 2) {
-//        String[] tag = posTagger.tag(new String[] {word});
-//
-//        if (tag.length > 0 && ("NN".equals(tag[0]) || "JJ".equals(tag[0]) || "NNS".equals(tag[0]))) {
-          Collection<String> list = word2Vec.wordsNearest(word, 2);
-          for (String syn : list) {
-            if (!syn.equals(word)) {
-              CharsRefBuilder charsRefBuilder = new CharsRefBuilder();
-              CharsRef cr = charsRefBuilder.append(syn).get();
+      String word = new String(termAtt.buffer()).trim();
+      Collection<String> list = word2Vec.similarWordsInVocabTo(word, minAccuracy);
+      int i = 0;
+      for (String syn : list) {
+        if (i == 2) {
+          break;
+        }
+        if (!syn.equals(word)) {
+          CharsRefBuilder charsRefBuilder = new CharsRefBuilder();
+          CharsRef cr = charsRefBuilder.append(syn).get();
 
-              State state = captureState();
-              outputs.add(new PendingOutput(state, cr, positions));
-            }
-          }
-//        }
+          State state = captureState();
+          outputs.add(new PendingOutput(state, cr, positions));
+          i++;
+        }
       }
     }
     return !outputs.isEmpty() || input.incrementToken();

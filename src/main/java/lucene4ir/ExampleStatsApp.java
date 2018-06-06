@@ -107,8 +107,8 @@ public class ExampleStatsApp {
         // we'll just look at the first segment - generally, the fields
         // list will be the same for all segments
         LeafReader leafReader = reader.leaves().get(0).reader();
-        for (String field : leafReader.fields()) {
-            System.out.println(field);
+        for (FieldInfo field : leafReader.getFieldInfos()) {
+            System.out.println(field.name);
         }
     }
 

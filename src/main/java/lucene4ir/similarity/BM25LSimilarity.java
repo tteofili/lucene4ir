@@ -37,9 +37,10 @@ public class BM25LSimilarity extends BM25Similarity {
         }
 
         @Override
-        public float score(int doc, float freq) {
+        public float score(int doc, float freq) throws IOException {
             // if there are no norms, we act as if b=0
-            float norm = norms == null ? k1 : cache[(byte)norms.get(doc) & 0xFF];
+            ;
+            float norm = norms == null || !norms.advanceExact(doc) ? k1 : cache[(byte) norms.longValue() & 0xFF];
             return (weightValue * freq / (freq + norm) )+ (delta * stats.idf.getValue());
         }
 

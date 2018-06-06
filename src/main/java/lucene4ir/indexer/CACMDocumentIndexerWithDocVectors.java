@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import lucene4ir.Lucene4IRConstants;
+import lucene4ir.similarity.VectorizeUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -65,8 +66,6 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
         // average word vector binary encoder
         BinaryEncodingField.BinaryEncoder encoder = value -> {
 
-            INDArray vector = Nd4j.zeros(word2Vec.getLayerSize());
-            double i = 0d;
             Analyzer analyzer = new StandardAnalyzer();
             TokenStream tokenStream = analyzer.tokenStream(null, value);
             tokenStream.addAttribute(CharTermAttribute.class);
@@ -77,24 +76,7 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
                 String token = attribute.toString();
                 words.add(token);
             }
-            try {
-                vector = word2Vec.getWordVectorsMean(words);
-            } catch (Exception e) {
-                System.err.println("couldn't get word vectors mean -> " + e.getLocalizedMessage());
-                for (String token : words) {
-                    INDArray wordVector = word2Vec.getLookupTable().vector(token);
-                    if (wordVector != null) {
-                        vector.addi(wordVector);
-                        i++;
-                    }
-                    INDArray unkVector = word2Vec.getLookupTable().vector(word2Vec.getUNK());
-                    if (unkVector != null) {
-                        vector.addi(unkVector);
-                        i++;
-                    }
-                }
-                vector.divi(i);
-            }
+            INDArray vector = VectorizeUtils.averageWordVectors(words, word2Vec);
 
             return Nd4j.toByteArray(vector);
         };

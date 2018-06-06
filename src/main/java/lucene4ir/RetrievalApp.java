@@ -143,8 +143,6 @@ public class RetrievalApp {
                     .trainElementsRepresentation(true)
                     .build();
                 paragraphVectors.fit();
-//                Similarity[] sims = new Similarity[]{new ParagraphVectorsSimilarity(paragraphVectors, field), new WordEmbeddingsSimilarity(w2v, field)};
-//                simfn = new MultiSimilarity(sims);
                 simfn = new ParagraphVectorsSimilarity(paragraphVectors, field);
                 break;
 
@@ -162,17 +160,15 @@ public class RetrievalApp {
                     t.setTokenPreProcessor(new LowCasePreProcessor());
                     vec = new Word2Vec.Builder()
                         .iterate(it)
-                        .layerSize(140)
-                        .epochs(3)
+                        .layerSize(100)
+                        .epochs(5)
                         .useUnknown(true)
-                        .windowSize(4)
+                        .windowSize(5)
                         .seed(12345)
                         .tokenizerFactory(t)
                         .build();
                     vec.fit();
                 }
-
-//                simfn = new MultiSimilarity(new Similarity[]{new LMDirichletSimilarity(), new WordEmbeddingsSimilarity(vec, f)});
                 simfn = new WordEmbeddingsSimilarity(vec, f);
                 break;
             case LTS:
