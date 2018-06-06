@@ -26,7 +26,7 @@ public class W2VSynonymFilterFactory extends TokenFilterFactory {
 
   @Override
   public TokenStream create(TokenStream tokenStream) {
-    return new W2VSynonymFilter(tokenStream, vec);
+    return new W2VSynonymFilter(tokenStream, vec, 0.9d);
   }
 
 }
