@@ -23,9 +23,12 @@ import java.util.LinkedList;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
+import org.deeplearning4j.models.embeddings.WeightLookupTable;
+import org.deeplearning4j.models.embeddings.wordvectors.WordVectorsImpl;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.ops.transforms.Transforms;
 
 /**
  * utility class for converting Lucene {@link org.apache.lucene.document.Document}s to <code>Double</code> vectors.
@@ -180,5 +183,19 @@ public class VectorizeUtils {
       denseDocumentVector.divi(i);
     }
     return denseDocumentVector;
+  }
+
+  public static INDArray averageWordVectors(Collection<String> words, WeightLookupTable lookupTable) {
+    INDArray denseDocumentVector = Nd4j.zeros(words.size(), lookupTable.layerSize());
+      int i = 0;
+      for (String w : words) {
+        INDArray vector = lookupTable.vector(w);
+        if (vector == null) {
+          vector = lookupTable.vector("UNK");
+        }
+        denseDocumentVector.putRow(i, vector);
+        i++;
+      }
+    return denseDocumentVector.mean(0);
   }
 }

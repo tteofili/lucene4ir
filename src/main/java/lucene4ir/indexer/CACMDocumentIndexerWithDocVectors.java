@@ -15,6 +15,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.search.BinaryEncodingField;
+import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
@@ -33,11 +34,11 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
     private Field allField;
     private Field vectorField;
     private Document doc;
-    private Word2Vec word2Vec;
+    private WeightLookupTable lookupTable;
 
-    public CACMDocumentIndexerWithDocVectors(String indexPath, String tokenFilterFile, boolean positional, Word2Vec word2Vec) throws Exception {
+    public CACMDocumentIndexerWithDocVectors(String indexPath, String tokenFilterFile, boolean positional, WeightLookupTable lookupTable) throws Exception {
         super(indexPath, tokenFilterFile,positional);
-        this.word2Vec = word2Vec;
+        this.lookupTable = lookupTable;
 
         // Reusable document object to reduce GC overhead
         doc = new Document();
@@ -66,19 +67,23 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
         // average word vector binary encoder
         BinaryEncodingField.BinaryEncoder encoder = value -> {
 
-            Analyzer analyzer = new StandardAnalyzer();
-            TokenStream tokenStream = analyzer.tokenStream(null, value);
-            tokenStream.addAttribute(CharTermAttribute.class);
-            tokenStream.reset();
-            Collection<String> words = new LinkedList<>();
-            while (tokenStream.incrementToken()) {
-                CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
-                String token = attribute.toString();
-                words.add(token);
-            }
-            INDArray vector = VectorizeUtils.averageWordVectors(words, word2Vec);
+            if (value != null && value.trim().length() > 0) {
+                Analyzer analyzer = new StandardAnalyzer();
+                TokenStream tokenStream = analyzer.tokenStream(null, value);
+                tokenStream.addAttribute(CharTermAttribute.class);
+                tokenStream.reset();
+                Collection<String> words = new LinkedList<>();
+                while (tokenStream.incrementToken()) {
+                    CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
+                    String token = attribute.toString();
+                    words.add(token);
+                }
+                INDArray vector = VectorizeUtils.averageWordVectors(words, lookupTable);
 
-            return Nd4j.toByteArray(vector);
+                return Nd4j.toByteArray(vector);
+            } else {
+                return Nd4j.toByteArray(Nd4j.zeros(1, lookupTable.layerSize()));
+            }
         };
         vectorField = new BinaryEncodingField(Lucene4IRConstants.FIELD_VECTOR, "", encoder);
     }
@@ -101,7 +106,7 @@ public class CACMDocumentIndexerWithDocVectors extends DocumentIndexer {
         textField.setStringValue(content);
         pubdateField.setStringValue(pubdate);
         allField.setStringValue(title + " " + author + " " +  content);
-        vectorField.setStringValue(content);
+        vectorField.setStringValue(allField.stringValue());
 
         doc.add(docnumField);
         doc.add(titleField);

@@ -64,7 +64,7 @@ public class IndexerApp {
                     Word2Vec vec = WordVectorSerializer.readWord2VecModel(model);
                   try {
                     di = new CACMDocumentIndexerWithDocVectors(p.indexName, p.tokenFilterFile,
-                        p.recordPositions, vec);
+                        p.recordPositions, vec.getLookupTable());
                   } catch (Exception e) {
                     throw new RuntimeException(e);
                   }
