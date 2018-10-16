@@ -133,14 +133,14 @@ public class RetrievalApp {
                 ParagraphVectors paragraphVectors = new ParagraphVectors.Builder()
                     .iterate(iterator)
                     .layerSize(200)
-                    .learningRate(0.1)
-                    .useAdaGrad(true)
+//                    .learningRate(0.1)
+//                    .useAdaGrad(true)
                     .trainSequencesRepresentation(true)
                     .epochs(5)
                     .seed(12345)
                     .useUnknown(true)
                     .tokenizerFactory(tokenizerFactory)
-                    .trainElementsRepresentation(true)
+                    .trainWordVectors(true)
                     .build();
                 paragraphVectors.fit();
                 simfn = new ParagraphVectorsSimilarity(paragraphVectors, field);
@@ -160,7 +160,8 @@ public class RetrievalApp {
                     t.setTokenPreProcessor(new LowCasePreProcessor());
                     vec = new Word2Vec.Builder()
                         .iterate(it)
-                        .layerSize(100)
+                        .layerSize(200)
+                        .minWordFrequency(3)
                         .epochs(5)
                         .useUnknown(true)
                         .windowSize(5)
@@ -285,10 +286,15 @@ public class RetrievalApp {
                     int n = Math.min(p.maxResults, scored.length);
 
                     for(int i=0; i<n; i++){
-                        Document doc = searcher.doc(scored[i].doc);
-                        String docno = doc.get("docnum");
-                        fw.write(qno + " QO " + docno + " " + (i+1) + " " + scored[i].score + " " + p.runTag);
-                        fw.write(System.lineSeparator());
+                        ScoreDoc scoreDoc = scored[i];
+                        try {
+                            Document doc = searcher.doc(scoreDoc.doc);
+                            String docno = doc.get("docnum");
+                            fw.write(qno + " QO " + docno + " " + (i + 1) + " " + scoreDoc.score + " " + p.runTag);
+                            fw.write(System.lineSeparator());
+                        } catch (Throwable t) {
+                            System.err.println("error retrieving doc "+ scoreDoc);
+                        }
                     }
                     line = br.readLine();
                 }
@@ -299,6 +305,7 @@ public class RetrievalApp {
         } catch (Exception e){
             System.out.println(" caught a " + e.getClass() +
                     "\n with message: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -341,6 +348,7 @@ public class RetrievalApp {
         } catch (Exception e){
             System.out.println(" caught a " + e.getClass() +
                     "\n with message: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -353,6 +361,7 @@ public class RetrievalApp {
         } catch (Exception e) {
             System.out.println(" caught a " + e.getClass() +
                     "\n with message: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
 

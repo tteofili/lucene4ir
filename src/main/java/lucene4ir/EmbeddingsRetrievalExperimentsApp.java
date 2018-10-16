@@ -62,7 +62,7 @@ public class EmbeddingsRetrievalExperimentsApp {
       }
     }
 
-    IOUtils.write(builder.toString(), new FileOutputStream(new File("/Users/teofili/Desktop/affect-dl", "output.csv")));
+    IOUtils.write(builder.toString(), new FileOutputStream(new File("/Users/teofili/Desktop/move/desktop/affect-dl", "output.csv")));
 
   }
 

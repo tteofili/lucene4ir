@@ -6,10 +6,10 @@
 </tokenFilter>
 <tokenFilter>
     <name>w2vsynonym</name>
-    <param>
-        <key>model</key>
-        <value>/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin/paragram.txt_counterfitted.bin</value>
-    </param>
+    <!--<param>-->
+        <!--<key>model</key>-->
+        <!--<value>/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin/paragram.txt_counterfitted.bin</value>-->
+    <!--</param>-->
 </tokenFilter>
 <!--<tokenFilter>-->
     <!--<name>synonym</name>-->

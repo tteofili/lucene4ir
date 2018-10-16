@@ -27,7 +27,7 @@ import org.nd4j.linalg.ops.transforms.Transforms;
  */
 public class WordEmbeddingsSimilarity extends Similarity {
 
-  public static enum Smoothing {
+  public enum Smoothing {
     MEAN,
     IDF,
     TF,
@@ -47,7 +47,7 @@ public class WordEmbeddingsSimilarity extends Similarity {
   public WordEmbeddingsSimilarity(Word2Vec word2Vec, String fieldName) {
     this.word2Vec = word2Vec;
     this.fieldName = fieldName;
-    this.smoothing = Smoothing.TF_IDF;
+    this.smoothing = Smoothing.MEAN;
   }
 
   @Override
@@ -67,6 +67,7 @@ public class WordEmbeddingsSimilarity extends Similarity {
   }
 
   private class EmbeddingsSimScorer extends SimScorer {
+    private INDArray queryVector = null;
     private final EmbeddingsSimWeight weight;
     private final LeafReaderContext context;
     private Terms fieldTerms;
@@ -93,18 +94,11 @@ public class WordEmbeddingsSimilarity extends Similarity {
       try {
         INDArray denseQueryVector = getQueryVector();
         INDArray denseDocumentVector;
-        Document document = reader.document(context.docBase + doc);
+        Document document = reader.document(doc);
         BytesRef bytesRef;
         if (document != null && (bytesRef = document.getBinaryValue(Lucene4IRConstants.FIELD_VECTOR)) != null) {
           denseDocumentVector = Nd4j.fromByteArray(bytesRef.bytes);
         } else {
-//          TermsEnum termsEnum = reader.getTermVector(doc, fieldName).iterator();
-//          Collection<String> words = new LinkedList<>();
-//          BytesRef next;
-//          while ((next = termsEnum.next()) != null) {
-//            words.add(next.utf8ToString());
-//          }
-//          denseDocumentVector = VectorizeUtils.averageWordVectors(words, word2Vec);
           denseDocumentVector = VectorizeUtils.toDenseAverageVector(
               reader.getTermVector(doc, fieldName), reader.numDocs(), word2Vec, smoothing);
         }
@@ -115,56 +109,63 @@ public class WordEmbeddingsSimilarity extends Similarity {
     }
 
     private INDArray getQueryVector() throws IOException {
-      List<String> queryTerms = new LinkedList<>();
-      for (TermStatistics termStats : weight.termStats) {
-        queryTerms.add(termStats.term().utf8ToString());
-      }
-      INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
-
-      if (fieldTerms == null) {
-        fieldTerms = MultiFields.getTerms(reader, fieldName);
-      }
-
-      for (String queryTerm : queryTerms) {
-        TermsEnum iterator = fieldTerms.iterator();
-        BytesRef term;
-        while ((term = iterator.next()) != null) {
-          TermsEnum.SeekStatus seekStatus = iterator.seekCeil(term);
-          if (seekStatus.equals(TermsEnum.SeekStatus.END)) {
-            iterator = fieldTerms.iterator();
-          }
-          if (seekStatus.equals(TermsEnum.SeekStatus.FOUND)) {
-            String string = term.utf8ToString();
-            if (string.equals(queryTerm)) {
-              INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
-              if (vector != null) {
-                double tf = iterator.totalTermFreq();
-                double docFreq = iterator.docFreq();
-                double smooth;
-                switch (smoothing) {
-                  case MEAN:
-                    smooth = queryTerms.size();
-                    break;
-                  case TF:
-                    smooth = tf;
-                    break;
-                  case IDF:
-                    smooth = docFreq;
-                    break;
-                  case TF_IDF:
-                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
-                    break;
-                  default:
-                    smooth = queryTerms.size();
-                }
-                denseQueryVector.addi(vector).divi(smooth);
-              }
-              break;
-            }
+      if (queryVector == null) {
+        List<String> queryTerms = new LinkedList<>();
+        for (TermStatistics termStats : weight.termStats) {
+          BytesRef term = termStats.term();
+          if (term != null) {
+            queryTerms.add(term.utf8ToString());
           }
         }
+        queryVector = VectorizeUtils.averageWordVectors(queryTerms, word2Vec.getLookupTable());
       }
-      return denseQueryVector;
+      return queryVector;
+//      INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
+//
+//      if (fieldTerms == null) {
+//        fieldTerms = MultiFields.getTerms(reader, fieldName);
+//      }
+//
+//      for (String queryTerm : queryTerms) {
+//        TermsEnum iterator = fieldTerms.iterator();
+//        BytesRef term;
+//        while ((term = iterator.next()) != null) {
+//          TermsEnum.SeekStatus seekStatus = iterator.seekCeil(term);
+//          if (seekStatus.equals(TermsEnum.SeekStatus.END)) {
+//            iterator = fieldTerms.iterator();
+//          }
+//          if (seekStatus.equals(TermsEnum.SeekStatus.FOUND)) {
+//            String string = term.utf8ToString();
+//            if (string.equals(queryTerm)) {
+//              INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
+//              if (vector != null) {
+//                double tf = iterator.totalTermFreq();
+//                double docFreq = iterator.docFreq();
+//                double smooth;
+//                switch (smoothing) {
+//                  case MEAN:
+//                    smooth = queryTerms.size();
+//                    break;
+//                  case TF:
+//                    smooth = tf;
+//                    break;
+//                  case IDF:
+//                    smooth = docFreq;
+//                    break;
+//                  case TF_IDF:
+//                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
+//                    break;
+//                  default:
+//                    smooth = queryTerms.size();
+//                }
+//                denseQueryVector.addi(vector).divi(smooth);
+//              }
+//              break;
+//            }
+//          }
+//        }
+//      }
+//      return denseQueryVector;
 //      }
 
     }
