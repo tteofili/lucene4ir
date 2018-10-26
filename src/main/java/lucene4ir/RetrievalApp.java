@@ -11,6 +11,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.queryparser.simple.SimpleQueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -38,6 +40,8 @@ import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFac
 import javax.xml.bind.JAXB;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import static lucene4ir.RetrievalApp.SimModel.BM25;
 import static lucene4ir.RetrievalApp.SimModel.LMD;
@@ -51,10 +55,26 @@ public class RetrievalApp {
     protected IndexReader reader;
     protected IndexSearcher searcher;
     protected Analyzer analyzer;
-    protected QueryParser parser;
+    protected StandardQueryParser parser;
     protected CollectionModel colModel;
     protected String fieldsFile;
     protected String qeFile;
+
+    @Override
+    public String toString() {
+        return "RetrievalApp{" +
+                "p=" + p +
+                ", simfn=" + simfn +
+                ", reader=" + reader +
+                ", searcher=" + searcher +
+                ", analyzer=" + analyzer +
+                ", parser=" + parser +
+                ", colModel=" + colModel +
+                ", fieldsFile='" + fieldsFile + '\'' +
+                ", qeFile='" + qeFile + '\'' +
+                ", sim=" + sim +
+                '}';
+    }
 
     protected enum SimModel {
         DEF, BM25, BM25L, LMD, LMJ, PL2, TFIDF,
@@ -147,7 +167,7 @@ public class RetrievalApp {
                 break;
 
             case WV:
-                String f = Lucene4IRConstants.FIELD_ALL;
+                String f = Lucene4IRConstants.FIELD_TITLE;
 
                 Word2Vec vec;
                 if (System.getProperty("model") != null) {
@@ -183,6 +203,12 @@ public class RetrievalApp {
 
                 break;
         }
+//        if (sim.toString().contains("")) {
+//            String[] split = sim.toString().split(",");
+//            for (String s : split) {
+//                selectSimilarityFunction(SimModel.valueOf(s));
+//            }
+//        }
     }
 
     public void readParamsFromFile(String paramFile){
@@ -312,9 +338,10 @@ public class RetrievalApp {
     public ScoreDoc[] runQuery(String qno, String queryTerms){
         ScoreDoc[] hits = null;
 
+        parser.setAnalyzer(analyzer);
         System.out.println("Query No.: " + qno + " " + queryTerms);
         try {
-            Query query = parser.parse(QueryParser.escape(queryTerms));
+            Query query = parser.parse(QueryParser.escape(queryTerms), Lucene4IRConstants.FIELD_CONTENT);
 
             try {
                 TopDocs results = searcher.search(query, p.maxResults);
@@ -324,7 +351,7 @@ public class RetrievalApp {
                 ioe.printStackTrace();
                 System.exit(1);
             }
-        } catch (ParseException pe){
+        } catch (Exception pe){
             pe.printStackTrace();
             System.exit(1);
         }
@@ -343,7 +370,16 @@ public class RetrievalApp {
             selectSimilarityFunction(sim);
             searcher.setSimilarity(simfn);
 
-            parser = new QueryParser(Lucene4IRConstants.FIELD_ALL, analyzer);
+            Map<String, Float> boost = new HashMap<>();
+
+            boost.put(Lucene4IRConstants.FIELD_ALL, 1f);
+            boost.put(Lucene4IRConstants.FIELD_AUTHOR, 3f);
+            boost.put(Lucene4IRConstants.FIELD_CONTENT, 2f);
+            boost.put(Lucene4IRConstants.FIELD_TITLE, 10f);
+            boost.put(Lucene4IRConstants.FIELD_ENTITIES, 50f);
+            parser = new StandardQueryParser();
+            parser.setFieldsBoost(boost);
+            parser.setMultiFields(boost.keySet().toArray(new CharSequence[0]));
 
         } catch (Exception e){
             System.out.println(" caught a " + e.getClass() +

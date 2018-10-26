@@ -116,11 +116,15 @@
                             <programs>
                                 <program>
                                     <mainClass>lucene4ir.EmbeddingsQueryExpansionExperimentsApp</mainClass>
-                                    <name>qe</name>
+                                    <name>cacm_qe</name>
                                 </program>
                                 <program>
-                                    <mainClass>lucene4ir.EmbeddingsRetrievalExperimentsApp</mainClass>
-                                    <name>ret</name>
+                                    <mainClass>lucene4ir.CACMEmbeddingsRetrievalExperimentsApp</mainClass>
+                                    <name>cacm_ret</name>
+                                </program>
+                                <program>
+                                    <mainClass>lucene4ir.TN17EmbeddingsRetrievalExperimentsApp</mainClass>
+                                    <name>nyt_ret</name>
                                 </program>
                             </programs>
                         </configuration>
@@ -153,40 +157,6 @@
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-shade-plugin</artifactId>-->
-                <!--<version>2.4.2</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>shade</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<filters>-->
-                                <!--<filter>-->
-                                    <!--<artifact>org.eclipse.jetty.orbit:javax.servlet</artifact>-->
-                                    <!--<excludes>-->
-                                        <!--<exclude>META-INF/ECLIPSEF.RSA</exclude>-->
-                                        <!--<exclude>META-INF/ECLIPSEF.SF</exclude>-->
-                                        <!--<exclude>META-INF/eclipse.inf</exclude>-->
-                                    <!--</excludes>-->
-                                <!--</filter>-->
-                            <!--</filters>-->
-                            <!--<transformers>-->
-                                <!--<transformer-->
-                                        <!--implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                                    <!--<manifestEntries>-->
-                                        <!--<Main-Class>it.dxtr.cli.DexterCLI</Main-Class>-->
-                                        <!--<Class-Path>./ ../</Class-Path>-->
-                                    <!--</manifestEntries>-->
-                                <!--</transformer>-->
-                            <!--</transformers>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
         </plugins>
 
 

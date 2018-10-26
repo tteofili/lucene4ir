@@ -19,7 +19,14 @@ package lucene4ir.similarity;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
@@ -27,6 +34,8 @@ import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+
+import static lucene4ir.similarity.WordEmbeddingsSimilarity.Smoothing.MEAN;
 
 /**
  * utility class for converting Lucene {@link org.apache.lucene.document.Document}s to <code>Double</code> vectors.
@@ -89,7 +98,7 @@ public class VectorizeUtils {
     return vector;
   }
 
-  public static INDArray toDenseAverageVector(Terms docTerms, double n, Word2Vec word2Vec, WordEmbeddingsSimilarity.Smoothing smoothing) throws IOException {
+  public static INDArray averageWordVectors(Terms docTerms, double n, Word2Vec word2Vec, WordEmbeddingsSimilarity.Smoothing smoothing) throws IOException {
     INDArray vector = Nd4j.zeros(word2Vec.getLayerSize());
     if (docTerms != null) {
       TermsEnum docTermsEnum = docTerms.iterator();
@@ -124,7 +133,29 @@ public class VectorizeUtils {
     return vector;
   }
 
-  public static INDArray toDenseAverageVector(Terms terms, Word2Vec word2Vec) throws IOException {
+  public static INDArray averageWordVectors(IndexReader reader, int doc, String vectorField, String contentField, Analyzer analyzer,
+                                            Word2Vec word2Vec, WordEmbeddingsSimilarity.Smoothing smoothing) throws IOException {
+    INDArray vector;
+    Document document = reader.document(doc);
+    if (document != null) {
+      BytesRef binaryValue = document.getBinaryValue(vectorField);
+      if (binaryValue != null) {
+        vector = Nd4j.fromByteArray(binaryValue.bytes);
+      } else {
+        Terms termVector = reader.getTermVector(doc, contentField);
+        if (termVector != null) {
+          vector = averageWordVectors(termVector, reader.numDocs(), word2Vec, smoothing);
+        }else {
+          vector = averageWordVectors(getTokens(analyzer, contentField, document.get(contentField)), word2Vec);
+        }
+      }
+    } else {
+      vector = Nd4j.zeros(word2Vec.getLayerSize());
+    }
+    return vector;
+  }
+
+  public static INDArray averageWordVectors(Terms terms, Word2Vec word2Vec) throws IOException {
     Collection<String> indArrayCollection = new LinkedList<>();
     if (terms != null && terms.size() > -1) {
       TermsEnum docTermsEnum = terms.iterator();
@@ -184,6 +215,9 @@ public class VectorizeUtils {
   }
 
   public static INDArray averageWordVectors(Collection<String> words, WeightLookupTable lookupTable) {
+    if (words.isEmpty()) {
+      return Nd4j.zeros(lookupTable.layerSize());
+    }
     INDArray denseDocumentVector = Nd4j.zeros(words.size(), lookupTable.layerSize());
     int i = 0;
     for (String w : words) {
@@ -193,9 +227,73 @@ public class VectorizeUtils {
       }
       if (vector != null) {
         denseDocumentVector.putRow(i, vector);
-        i++;
+      }
+      i++;
+    }
+    return denseDocumentVector.add(1e-10).mean(0);
+  }
+
+  public static INDArray averageWV(String[] words, Word2Vec word2Vec) {
+    INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
+    for (String term : words) {
+      INDArray vector = word2Vec.getLookupTable().vector(term);
+      if (vector != null) {
+        denseQueryVector.addi(vector).divi(words.length);
       }
     }
-    return denseDocumentVector.mean(0);
+    return denseQueryVector;
+  }
+
+  private static Collection<String> getTokens(Analyzer analyzer, String field, String text) throws IOException {
+    Collection<String> tokens = new LinkedList<>();
+    TokenStream ts = analyzer.tokenStream(field, text);
+    ts.reset();
+    ts.addAttribute(CharTermAttribute.class);
+    while (ts.incrementToken()) {
+      CharTermAttribute charTermAttribute = ts.getAttribute(CharTermAttribute.class);
+      String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+      tokens.add(token);
+    }
+    ts.end();
+    ts.close();
+    return tokens;
+  }
+
+  public static INDArray averageWordVectors(IndexReader reader, String fieldName, Collection<String> queryTerms, Word2Vec word2Vec,
+                                  WordEmbeddingsSimilarity.Smoothing smoothing) throws IOException {
+    INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
+
+    Terms fieldTerms = MultiFields.getTerms(reader, fieldName);
+
+    for (String queryTerm : queryTerms) {
+      TermsEnum iterator = fieldTerms.iterator();
+      boolean seekStatus = iterator.seekExact(new BytesRef(queryTerm));
+      if (seekStatus) {
+        INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
+        if (vector != null) {
+          double tf = iterator.totalTermFreq();
+          double docFreq = iterator.docFreq();
+          double smooth;
+          switch (smoothing) {
+            case MEAN:
+              smooth = queryTerms.size();
+              break;
+            case TF:
+              smooth = tf;
+              break;
+            case IDF:
+              smooth = docFreq;
+              break;
+            case TF_IDF:
+              smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
+              break;
+            default:
+              smooth = queryTerms.size();
+          }
+          denseQueryVector.addi(vector).divi(smooth);
+        }
+      }
+    }
+    return denseQueryVector;
   }
 }

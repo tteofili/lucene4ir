@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<indexParams>
+    <indexName>tn_index</indexName>
+    <fileList>data/tn17/tn17_filelist</fileList>
+    <indexType>NYT</indexType>
+    <tokenFilterFile>params/index/example_tn.xml</tokenFilterFile>
+    <recordPositions>true</recordPositions>
+</indexParams>

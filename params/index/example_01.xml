@@ -8,18 +8,18 @@
     <name>w2vsynonym</name>
     <!--<param>-->
         <!--<key>model</key>-->
-        <!--<value>/Users/teofili/Desktop/affect-dl/post/paragram_post_training_bin/paragram.txt_counterfitted.bin</value>-->
+        <!--<value>path/to/model</value>-->
     <!--</param>-->
 </tokenFilter>
 <!--<tokenFilter>-->
-    <!--<name>synonym</name>-->
+    <!--<name>synonymgraph</name>-->
     <!--<param>-->
         <!--<key>format</key>-->
         <!--<value>wordnet</value>-->
     <!--</param>-->
     <!--<param>-->
         <!--<key>synonyms</key>-->
-        <!--<value>wn_s.pl</value>-->
+        <!--<value>src/main/resources/wn_s.pl</value>-->
     <!--</param>-->
 <!--</tokenFilter>-->
 </tokenFilters>

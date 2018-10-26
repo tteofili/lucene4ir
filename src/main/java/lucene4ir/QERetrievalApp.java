@@ -79,8 +79,8 @@ public class QERetrievalApp extends RetrievalApp{
         // Original Query
         System.out.println("Query No.: " + qno + " " + queryTerms);
         try {
-            Query query = parser.parse(QueryParser.escape(queryTerms));
             try {
+            Query query = parser.parse(QueryParser.escape(queryTerms), Lucene4IRConstants.FIELD_ALL);
                 TopDocs results = searcher.search(query, p.maxResults);
                 hits = results.scoreDocs;
 
@@ -108,8 +108,8 @@ public class QERetrievalApp extends RetrievalApp{
                         i++;
                     }
 
-                    Query oq = parser.parse(QueryParser.escape(oldQueryString));
-                    Query nq = parser.parse(QueryParser.escape(qString.trim()));
+                    Query oq = parser.parse(QueryParser.escape(oldQueryString), Lucene4IRConstants.FIELD_ALL);
+                    Query nq = parser.parse(QueryParser.escape(qString.trim()), Lucene4IRConstants.FIELD_ALL);
 
                     BoostQuery obq = new BoostQuery(oq,(qeBeta));
                     BoostQuery nbq = new BoostQuery(nq,(1-qeBeta));
@@ -128,7 +128,7 @@ public class QERetrievalApp extends RetrievalApp{
                 System.out.println(" caught a " + ioe.getClass() +
                         "\n with message: " + ioe.getMessage());
             }
-        } catch (ParseException pe){
+        } catch (Exception pe){
             System.out.println("Can't parse query");
         }
 

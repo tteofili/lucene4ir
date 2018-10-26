@@ -30,7 +30,7 @@ public class IndexerApp {
 
 
     private enum DocumentModel {
-        CACM, CLUEWEB, TRECNEWS, TRECAQUAINT, TRECWEB, TRECTIPSTER, PUBMED
+        CACM, CLUEWEB, TRECNEWS, TRECAQUAINT, TRECWEB, TRECTIPSTER, PUBMED, NYT
     }
 
     private DocumentModel docModel;
@@ -62,15 +62,15 @@ public class IndexerApp {
                 if (System.getProperty("model") != null) {
                     String model = System.getProperty("model");
                     Word2Vec vec = WordVectorSerializer.readWord2VecModel(model);
-                  try {
-                    di = new CACMDocumentIndexerWithDocVectors(p.indexName, p.tokenFilterFile,
-                        p.recordPositions, vec.getLookupTable());
-                  } catch (Exception e) {
-                    throw new RuntimeException(e);
-                  }
+                    try {
+                        di = new CACMDocumentIndexerWithDocVectors(p.indexName, p.tokenFilterFile,
+                                p.recordPositions, vec.getLookupTable());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 } else {
                     di = new CACMDocumentIndexer(p.indexName, p.tokenFilterFile,
-                        p.recordPositions);
+                            p.recordPositions);
                 }
                 break;
 
@@ -107,6 +107,27 @@ public class IndexerApp {
                 di = new PubMedDocumentIndexer(p.indexName, p.tokenFilterFile, p.recordPositions);
                 break;
 
+            case NYT:
+                System.out.println("NYT");
+                if (System.getProperty("model") != null) {
+                    String model = System.getProperty("model");
+                    Word2Vec vec = WordVectorSerializer.readWord2VecModel(model);
+                    System.out.println("indexing with model "+vec);
+                    try {
+                        di = new NYTIndexer(p.indexName, p.tokenFilterFile,
+                                p.recordPositions, vec.getLookupTable());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    try {
+                        di = new NYTIndexer(p.indexName, p.tokenFilterFile,
+                            p.recordPositions, null);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                break;
 
             default:
                 System.out.println("Default Document Parser");
@@ -211,9 +232,14 @@ public class IndexerApp {
 
         try {
             ArrayList<String> files = indexer.readFileListFromFile();
+            int i = 0;
             for (String f : files) {
-                System.out.println("About to Index Files in: " +  f);
+//                System.out.println("About to Index Files in: " +  f);
                 indexer.indexDocumentsFromFile(f);
+                i++;
+                if (i%10000==0) {
+                    System.out.println("indexed "+i+" docs");
+                }
             }
         } catch (Exception e){
             e.printStackTrace();

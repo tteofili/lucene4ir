@@ -15,11 +15,11 @@ public class EmbeddingsQueryExpansionExperimentsApp {
 
   private static String[] measures = new String[] {"ndcg", "map", "gm_map", "Rprec", "bpref", "recip_rank"};
   private static String[] directories = new String[] {
-      "/Users/teofili/Desktop/move/desktop/affect-dl/ootb-models",
-      "/Users/teofili/Desktop/move/desktop/affect-dl/pre/",
-      "/Users/teofili/Desktop/move/desktop/affect-dl/post/glove_post_training_bin",
-      "/Users/teofili/Desktop/move/desktop/affect-dl/post/word2vec_post_training_bin",
-      "/Users/teofili/Desktop/move/desktop/affect-dl/post/paragram_post_training_bin"
+      "/Users/teofili/Desktop/tests/affect-dl/ootb-models",
+      "/Users/teofili/Desktop/tests/affect-dl/pre/",
+      "/Users/teofili/Desktop/tests/affect-dl/post/glove_post_training_bin",
+      "/Users/teofili/Desktop/tests/affect-dl/post/word2vec_post_training_bin",
+      "/Users/teofili/Desktop/tests/affect-dl/post/paragram_post_training_bin"
   };
 
   public static void main(String[] args) throws Exception {
@@ -64,13 +64,12 @@ public class EmbeddingsQueryExpansionExperimentsApp {
 
         String line = metrics.toString();
 
-        System.out.println(line);
-
         builder.append(line).append('\n');
+        System.out.println(builder);
       }
     }
 
-    IOUtils.write(builder.toString(), new FileOutputStream(new File("/Users/teofili/Desktop/move/desktop/affect-dl", "output.csv")));
+    IOUtils.write(builder.toString(), new FileOutputStream(new File("/Users/teofili/Desktop/tests/affect-dl", "output.csv")));
 
   }
 

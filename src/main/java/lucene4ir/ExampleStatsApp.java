@@ -527,20 +527,20 @@ public class ExampleStatsApp {
         statsApp.extractBigramsFromStoredText();
         */
 
-        statsApp.printTermVector(200);
-        statsApp.printTermVector(201);
-        statsApp.printTermVector(202);
+        statsApp.printTermVector(10);
+        statsApp.printTermVector(50);
+        statsApp.printTermVector(90);
 //
         int doc_ids[] = new int[3];
-        doc_ids[0] = 200;
-        doc_ids[1] = 201;
-        doc_ids[2] = 202;
+        doc_ids[0] = 10;
+        doc_ids[1] = 50;
+        doc_ids[2] = 90;
 
         statsApp.printTermVectors(doc_ids);
 
         int doc_ids2[] = new int[2];
-        doc_ids2[0] = 200;
-        doc_ids2[1] = 201;
+        doc_ids2[0] = 50;
+        doc_ids2[1] = 90;
 
         statsApp.printTermVectors(doc_ids2);
 

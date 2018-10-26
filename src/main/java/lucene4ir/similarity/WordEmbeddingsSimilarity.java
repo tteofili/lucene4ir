@@ -2,17 +2,19 @@ package lucene4ir.similarity;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
 import lucene4ir.Lucene4IRConstants;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.FieldInvertState;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.search.similarities.Similarity;
@@ -37,17 +39,21 @@ public class WordEmbeddingsSimilarity extends Similarity {
   private final Word2Vec word2Vec;
   private final String fieldName;
   private final Smoothing smoothing;
+  private final Analyzer analyzer;
 
   public WordEmbeddingsSimilarity(Word2Vec word2Vec, String fieldName, Smoothing smoothing) {
     this.word2Vec = word2Vec;
     this.fieldName = fieldName;
     this.smoothing = smoothing;
+    try {
+      this.analyzer = CustomAnalyzer.builder().withTokenizer(StandardTokenizerFactory.class).addTokenFilter(LowerCaseFilterFactory.class).build();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public WordEmbeddingsSimilarity(Word2Vec word2Vec, String fieldName) {
-    this.word2Vec = word2Vec;
-    this.fieldName = fieldName;
-    this.smoothing = Smoothing.MEAN;
+    this(word2Vec, fieldName, Smoothing.TF_IDF);
   }
 
   @Override
@@ -62,7 +68,7 @@ public class WordEmbeddingsSimilarity extends Similarity {
   }
 
   @Override
-  public SimScorer simScorer(SimWeight weight, LeafReaderContext context) throws IOException {
+  public SimScorer simScorer(SimWeight weight, LeafReaderContext context) {
     return new EmbeddingsSimScorer(weight, context);
   }
 
@@ -70,10 +76,9 @@ public class WordEmbeddingsSimilarity extends Similarity {
     private INDArray queryVector = null;
     private final EmbeddingsSimWeight weight;
     private final LeafReaderContext context;
-    private Terms fieldTerms;
     private LeafReader reader;
 
-    public EmbeddingsSimScorer(SimWeight weight, LeafReaderContext context) {
+    EmbeddingsSimScorer(SimWeight weight, LeafReaderContext context) {
       this.weight = (EmbeddingsSimWeight) weight;
       this.context = context;
       this.reader = context.reader();
@@ -84,7 +89,6 @@ public class WordEmbeddingsSimilarity extends Similarity {
       return "EmbeddingsSimScorer{" +
           "weight=" + weight +
           ", context=" + context +
-          ", fieldTerms=" + fieldTerms +
           ", reader=" + reader +
           '}';
     }
@@ -92,23 +96,26 @@ public class WordEmbeddingsSimilarity extends Similarity {
     @Override
     public float score(int doc, float freq) {
       try {
-        INDArray denseQueryVector = getQueryVector();
-        INDArray denseDocumentVector;
-        Document document = reader.document(doc);
-        BytesRef bytesRef;
-        if (document != null && (bytesRef = document.getBinaryValue(Lucene4IRConstants.FIELD_VECTOR)) != null) {
-          denseDocumentVector = Nd4j.fromByteArray(bytesRef.bytes);
-        } else {
-          denseDocumentVector = VectorizeUtils.toDenseAverageVector(
-              reader.getTermVector(doc, fieldName), reader.numDocs(), word2Vec, smoothing);
-        }
-        return (float) Transforms.cosineSim(denseQueryVector, denseDocumentVector);
-      } catch (IOException e) {
+        return (float) Transforms.cosineSim(getQueryVector(),
+                VectorizeUtils.averageWordVectors(reader, doc, Lucene4IRConstants.FIELD_VECTOR, fieldName,
+                        analyzer, word2Vec, smoothing));
+      } catch (Exception e) {
         return 0f;
       }
     }
 
     private INDArray getQueryVector() throws IOException {
+//      if (queryVector == null) {
+//        List<String> queryTerms = new LinkedList<>();
+//        for (TermStatistics termStats : weight.termStats) {
+//          BytesRef term = termStats.term();
+//          if (term != null) {
+//            queryTerms.add(term.utf8ToString());
+//          }
+//        }
+//        queryVector = VectorizeUtils.averageWordVectors(queryTerms, word2Vec.getLookupTable());
+//      }
+//      return queryVector;
       if (queryVector == null) {
         List<String> queryTerms = new LinkedList<>();
         for (TermStatistics termStats : weight.termStats) {
@@ -117,60 +124,14 @@ public class WordEmbeddingsSimilarity extends Similarity {
             queryTerms.add(term.utf8ToString());
           }
         }
-        queryVector = VectorizeUtils.averageWordVectors(queryTerms, word2Vec.getLookupTable());
+        queryVector = VectorizeUtils.averageWordVectors(reader, fieldName, queryTerms, word2Vec, smoothing);
       }
       return queryVector;
-//      INDArray denseQueryVector = Nd4j.zeros(word2Vec.getLayerSize());
-//
-//      if (fieldTerms == null) {
-//        fieldTerms = MultiFields.getTerms(reader, fieldName);
-//      }
-//
-//      for (String queryTerm : queryTerms) {
-//        TermsEnum iterator = fieldTerms.iterator();
-//        BytesRef term;
-//        while ((term = iterator.next()) != null) {
-//          TermsEnum.SeekStatus seekStatus = iterator.seekCeil(term);
-//          if (seekStatus.equals(TermsEnum.SeekStatus.END)) {
-//            iterator = fieldTerms.iterator();
-//          }
-//          if (seekStatus.equals(TermsEnum.SeekStatus.FOUND)) {
-//            String string = term.utf8ToString();
-//            if (string.equals(queryTerm)) {
-//              INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
-//              if (vector != null) {
-//                double tf = iterator.totalTermFreq();
-//                double docFreq = iterator.docFreq();
-//                double smooth;
-//                switch (smoothing) {
-//                  case MEAN:
-//                    smooth = queryTerms.size();
-//                    break;
-//                  case TF:
-//                    smooth = tf;
-//                    break;
-//                  case IDF:
-//                    smooth = docFreq;
-//                    break;
-//                  case TF_IDF:
-//                    smooth = VectorizeUtils.tfIdf(reader.numDocs(), tf, docFreq);
-//                    break;
-//                  default:
-//                    smooth = queryTerms.size();
-//                }
-//                denseQueryVector.addi(vector).divi(smooth);
-//              }
-//              break;
-//            }
-//          }
-//        }
-//      }
-//      return denseQueryVector;
-//      }
-
     }
 
-    @Override
+
+
+      @Override
     public float computeSlopFactor(int distance) {
       return 1;
     }
@@ -186,7 +147,7 @@ public class WordEmbeddingsSimilarity extends Similarity {
     private final CollectionStatistics collectionStats;
     private final TermStatistics[] termStats;
 
-    public EmbeddingsSimWeight(float boost, CollectionStatistics collectionStats, TermStatistics[] termStats) {
+    EmbeddingsSimWeight(float boost, CollectionStatistics collectionStats, TermStatistics[] termStats) {
       this.boost = boost;
       this.collectionStats = collectionStats;
       this.termStats = termStats;
